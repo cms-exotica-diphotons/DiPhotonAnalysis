@@ -201,6 +201,14 @@ private:
   TTree *fFakeTightTree;
   TTree *fFakeFakeTree;
 
+  // cut tree histograms
+  TH1D* hHoverE;
+  TH1D* hchIso;
+  TH1D* hphoIso;
+  TH1D* hsieie;
+  TH1D* hetacut;
+  TH1D* hptcut;
+
   ExoDiPhotons::eventInfo_t fEventInfo;
   ExoDiPhotons::vtxInfo_t fVtxInfo;
   // adding a second vertex
@@ -377,6 +385,14 @@ ExoDiPhotonAnalyzer::ExoDiPhotonAnalyzer(const edm::ParameterSet& iConfig)
   fpu_n_BeforeCutsAfterReWeight = fs->make<TH1F>("fpu_n_BeforeCutsAfterReWeight","PileUpBeforeCuts",300,0,300);
   fNumTotalEvents = fs->make<TH1F>("NumTotalEvents","Total number of events",4,0.,2.);
   fNumTotalWeightedEvents = fs->make<TH1F>("NumTotalWeightedEvents","Total weighted number of events",4,0.,2.);
+
+  hHoverE = fs->make<TH1D>("hHoverE","",1,0.0,1.0);
+  hchIso = fs->make<TH1D>("hchIso","",1,0.0,1.0);
+  hphoIso = fs->make<TH1D>("hphoIso","",1,0.0,1.0);
+  hsieie = fs->make<TH1D>("hsieie","",1,0.0,1.0);
+  hetacut = fs->make<TH1D>("hetacut","",1,0.0,1.0);
+  hptcut = fs->make<TH1D>("hptcut","",1,0.0,1.0);
+
   fTree = fs->make<TTree>("fTree","PhotonTree");
 
   fTree->Branch("Event",&fEventInfo,ExoDiPhotons::eventInfoBranchDefString.c_str());
@@ -1083,6 +1099,37 @@ ExoDiPhotonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     ExoDiPhotons::FillRecoPhotonInfo(tempInfo,&(*recoPhoton),lazyTools_.get(),recHitsEB,recHitsEE,ch_status,iEvent, iSetup);
     Bool_t isSaturated = tempInfo.isSaturated;
 
+    // let's put the cut table code here:
+    // iso cut
+    // isSaturated
+    // sieie cut
+    // pt cut
+    // use abseta for eta
+
+    // TH1D* hHoverE;
+    // TH1D* hchIso;
+    // TH1D* hphoIso;
+    // TH1D* hsieie;
+    // TH1D* hetacut;
+    // TH1D* hptcut;
+
+    // NEED TO CHECK FUNCITONS WHETHER OR NOT WE NEED RHO CORRECTED ISOLATIONS
+
+    bool passHoverE = ExoDiPhotons::passesHadTowerOverEmCut(&(*recoPhoton),MethodID,CategoryPFID);
+    bool passChIso = ExoDiPhotons::passesChargedHadronCut(&(*recoPhoton),rhocorPFIsoCH,MethodID,CategoryPFID);
+    bool passPhoIso = ExoDiPhotons::passCorPhoIsoHighPtID(&(*recoPhoton),MethodID,CategoryPFID,rhocorPFIsoPH,rho_);
+    bool passSieie = ExoDiPhotons::passesPFSigmaIetaIetaCut(&(*recoPhoton),full5x5sigmaIetaIeta,MethodID,CategoryPFID,isSaturated);
+
+    bool cond1 = ExoDiPhotons::isGapPhoton(&(*recoPhoton)) || ExoDiPhotons::isASpike(&(*recoPhoton));
+    bool cond2 = cond1 || !passHoverE;
+    bool cond3 = cond2 || !passChIso;
+    bool cond4 = cond3 || !passPhoIso;
+    bool cond5 = cond4 || !passSieie;
+
+    if (ExoDiPhotons::isGapPhoton(&(*recoPhoton)) || ExoDiPhotons::isASpike(&(*recoPhoton)) ){
+      hetacut->Fill(0.5)
+    }
+
     if(recoPhoton->pt() < fMin_pt) cout << "photon pt = " << recoPhoton->pt() << " which is less than " << fMin_pt << "!" << endl;
     if(ExoDiPhotons::isGapPhoton(&(*recoPhoton))) cout << "this is a photon in the gap!" << endl;
     if(ExoDiPhotons::isASpike(&(*recoPhoton))) cout << "this photon is a spike!" << endl;
@@ -1095,7 +1142,8 @@ ExoDiPhotonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     
     //Now we choose which ID to use (PF or Det)
     if(MethodID.Contains("highpt")){
-      if(ExoDiPhotons::isPFTightPhoton(&(*recoPhoton),rhocorPFIsoCH,rhocorPFIsoNH,rhocorPFIsoPH,full5x5sigmaIetaIeta,passelecveto,MethodID,CategoryPFID,isSaturated)){
+      // if(ExoDiPhotons::isPFTightPhoton(&(*recoPhoton),rhocorPFIsoCH,rhocorPFIsoNH,rhocorPFIsoPH,full5x5sigmaIetaIeta,passelecveto,MethodID,CategoryPFID,isSaturated)){
+      if(ExoDiPhotons::passHighPtID(&(*recoPhoton),MethodID,CategoryPFID,rhocorPFIsoCH,phIso,full5x5sigmaIetaIeta,rho_,passelecveto,isSaturated)){
         selectedPhotons.push_back(*recoPhoton);
         cout << "photon passed the high pt id!" << endl;
       }
