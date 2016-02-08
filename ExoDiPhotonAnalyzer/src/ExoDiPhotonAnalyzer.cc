@@ -202,12 +202,17 @@ private:
   TTree *fFakeFakeTree;
 
   // cut tree histograms
+  TH1D* hAfterPV;
   TH1D* hHoverE;
+  TH1D* hIso;
   TH1D* hchIso;
-  TH1D* hphoIso;
   TH1D* hsieie;
-  TH1D* hetacut;
+  TH1D* hetagap;
+  TH1D* helecveto;
   TH1D* hptcut;
+  TH1D* hphocollsize;
+  TH1D* hSC;
+  TH1D* hNoEEEE;
 
   ExoDiPhotons::eventInfo_t fEventInfo;
   ExoDiPhotons::vtxInfo_t fVtxInfo;
@@ -386,12 +391,17 @@ ExoDiPhotonAnalyzer::ExoDiPhotonAnalyzer(const edm::ParameterSet& iConfig)
   fNumTotalEvents = fs->make<TH1F>("NumTotalEvents","Total number of events",4,0.,2.);
   fNumTotalWeightedEvents = fs->make<TH1F>("NumTotalWeightedEvents","Total weighted number of events",4,0.,2.);
 
+  hNoEEEE = fs->make<TH1D>("hNoEEEE","",1,0.0,1.0);
+  hSC = fs->make<TH1D>("hSC","",1,0.0,1.0);
+  hAfterPV = fs->make<TH1D>("hAfterPV","",1,0.0,1.0);
   hHoverE = fs->make<TH1D>("hHoverE","",1,0.0,1.0);
+  hIso = fs->make<TH1D>("hIso","",1,0.0,1.0);
   hchIso = fs->make<TH1D>("hchIso","",1,0.0,1.0);
-  hphoIso = fs->make<TH1D>("hphoIso","",1,0.0,1.0);
   hsieie = fs->make<TH1D>("hsieie","",1,0.0,1.0);
-  hetacut = fs->make<TH1D>("hetacut","",1,0.0,1.0);
+  hetagap = fs->make<TH1D>("hetagap","",1,0.0,1.0);
+  helecveto = fs->make<TH1D>("helecveto","",1,0.0,1.0);
   hptcut = fs->make<TH1D>("hptcut","",1,0.0,1.0);
+  hphocollsize = fs->make<TH1D>("hphocollsize","",11,-0.5,10.5);
 
   fTree = fs->make<TTree>("fTree","PhotonTree");
 
@@ -958,9 +968,38 @@ ExoDiPhotonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
   }
 
+  // counters for number of photons passing tests
+  // TH1D* hAfterPV;
+  // TH1D* hHoverE;
+  // TH1D* hchIso;
+  // TH1D* hphoIso;
+  // TH1D* hsieie;
+  // TH1D* hetagap;
+  // TH1D* helecveto;
+  // TH1D* hptcut;
+  // TH1D* hphocollsize;
+  // TH1D* hSC;
+  // TH1D* hNoEEEE;
+
+  int nAfterPV = 0;
+  int nPassedChIso = 0;
+  std::map<double,bool> HoverEMap;
+  std::map<double,bool> isoMap;
+  std::map<double,bool> sieieMap;
+  std::map<double,bool> etaGapMap;
+  // int nelecveto = 0;
+  std::map<double,bool> ptcutMap;
+  std::map<double,bool> scMap;
+  std::map< double, std::vector<bool> > noEEEEMap;
+
   // photon loop
   for(edm::View<reco::Photon>::const_iterator recoPhoton = photons->begin(); recoPhoton!=photons->end(); recoPhoton++) {
+
+    float abseta = fabs( recoPhoton->superCluster()->eta());
     
+    hphocollsize->Fill(photons->size());
+    nAfterPV++;
+
     phoIndex++;
 
     //cout <<  iEvent.id().run() << " " <<  iEvent.id().luminosityBlock() << " " << iEvent.id().event() << endl;
@@ -978,10 +1017,15 @@ ExoDiPhotonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
     // for MiniAOD, introduce chIso cut to avoid the case where a supercluster doesn't have rechit/cluster information that is counted on later
     // cout << "SK" << recoPhoton->r9() << " " << chIso << " " << recoPhoton->chargedHadronIso() << " " << 0.3*recoPhoton->pt() << endl;
-    if (!isAOD && recoPhoton->chargedHadronIso() > 10.) continue;
-    
-    float abseta = fabs( recoPhoton->superCluster()->eta());
-
+    if (recoPhoton->chargedHadronIso() > 10.){
+      cout << "chargedHadronIso="<<recoPhoton->chargedHadronIso() << " pt=" << recoPhoton->pt() << "skipped!" << endl;
+      continue;
+    }
+    nPassedChIso++;
+    if (recoPhoton->pt() > 10. && abseta < 3. ){
+      scMap[recoPhoton->pt()] = true;
+    }
+    else scMap[recoPhoton->pt()] = false;
     //we set the effective areas
     //based on whether we use egamma ID
     //or high pt photon ID
@@ -1060,6 +1104,8 @@ ExoDiPhotonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     
     // conversion safe electron veto
     bool passelecveto = vetoMap.at(recoPhoton->pt());
+    // if (passelecveto && goOn) nelecveto++;
+    // if (!passelecveto) goOn = false;
     // bool passelecveto = !ConversionTools::hasMatchedPromptElectron(recoPhoton->superCluster(), hElectrons, hConversions, beamSpot.position());
 
     // if (passelecveto) cout << "Passed electron veto!" << endl;
@@ -1106,29 +1152,56 @@ ExoDiPhotonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     // pt cut
     // use abseta for eta
 
-    // TH1D* hHoverE;
-    // TH1D* hchIso;
-    // TH1D* hphoIso;
-    // TH1D* hsieie;
-    // TH1D* hetacut;
-    // TH1D* hptcut;
-
-    // NEED TO CHECK FUNCITONS WHETHER OR NOT WE NEED RHO CORRECTED ISOLATIONS
-
     bool passHoverE = ExoDiPhotons::passesHadTowerOverEmCut(&(*recoPhoton),MethodID,CategoryPFID);
     bool passChIso = ExoDiPhotons::passesChargedHadronCut(&(*recoPhoton),rhocorPFIsoCH,MethodID,CategoryPFID);
     bool passPhoIso = ExoDiPhotons::passCorPhoIsoHighPtID(&(*recoPhoton),MethodID,CategoryPFID,rhocorPFIsoPH,rho_);
     bool passSieie = ExoDiPhotons::passesPFSigmaIetaIetaCut(&(*recoPhoton),full5x5sigmaIetaIeta,MethodID,CategoryPFID,isSaturated);
 
-    bool cond1 = ExoDiPhotons::isGapPhoton(&(*recoPhoton)) || ExoDiPhotons::isASpike(&(*recoPhoton));
-    bool cond2 = cond1 || !passHoverE;
-    bool cond3 = cond2 || !passChIso;
-    bool cond4 = cond3 || !passPhoIso;
-    bool cond5 = cond4 || !passSieie;
+    bool isEBs = recoPhoton->isEB();
+    bool isEEs = recoPhoton->isEE();
+    std::vector<bool> locVec;
+    locVec.push_back(isEBs);
+    locVec.push_back(isEEs);
+    cout << "adding pt = " << recoPhoton->pt() << " isEB=" << isEBs << " isEE=" << isEEs << "to map" << endl;
+    noEEEEMap[recoPhoton->pt()] = locVec;
 
-    if (ExoDiPhotons::isGapPhoton(&(*recoPhoton)) || ExoDiPhotons::isASpike(&(*recoPhoton)) ){
-      hetacut->Fill(0.5)
-    }
+    etaGapMap[recoPhoton->pt()] = !(ExoDiPhotons::isGapPhoton(&(*recoPhoton)) || ExoDiPhotons::isASpike(&(*recoPhoton)));
+    HoverEMap[recoPhoton->pt()] = passHoverE;
+    isoMap[recoPhoton->pt()] = passChIso && passPhoIso;
+    sieieMap[recoPhoton->pt()] = passSieie;
+    ptcutMap[recoPhoton->pt()] = (recoPhoton->pt() > fMin_pt);
+
+    // bool cond1 = !(ExoDiPhotons::isGapPhoton(&(*recoPhoton)) || ExoDiPhotons::isASpike(&(*recoPhoton)));
+    // bool cond2 = cond1 && passHoverE;
+    // bool cond3 = cond2 && passChIso;
+    // bool cond4 = cond3 && passPhoIso;
+    // bool cond5 = cond4 && passSieie;
+    // bool cond6 = cond5 && passelecveto;
+    // bool cond7 = cond6 && (recoPhoton->pt() > fMin_pt);
+
+    // if ( cond1 ){
+    //   // hetagap->Fill(0.5);
+    //   netagap++;
+    // }
+    // if ( cond2 ){
+    //   // hHoverE->Fill(0.5);
+    //   nHoverE++;
+    // }
+    // if ( cond3 ){
+    //   // hchIso->Fill(0.5);
+    // }
+    // if ( cond4 ){
+    //   hphoIso->Fill(0.5);
+    // }
+    // if ( cond5 ){
+    //   hsieie->Fill(0.5);
+    // }
+    // if ( cond6 ){
+    //   helecveto->Fill(0.5);
+    // }
+    // if ( cond7 ){
+    //   hptcut->Fill(0.5);
+    // }
 
     if(recoPhoton->pt() < fMin_pt) cout << "photon pt = " << recoPhoton->pt() << " which is less than " << fMin_pt << "!" << endl;
     if(ExoDiPhotons::isGapPhoton(&(*recoPhoton))) cout << "this is a photon in the gap!" << endl;
@@ -1155,6 +1228,7 @@ ExoDiPhotonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 
     // also check for fakeable objects
     if(MethodID.Contains("highpt")){
+      cout << "checking if fakeable" << endl;
       if(ExoDiPhotons::isPFFakeableObject(&(*recoPhoton),rhocorPFIsoCH,rhocorPFIsoNH,rhocorPFIsoPH,full5x5sigmaIetaIeta,passelecveto,MethodID,CategoryPFID,isSaturated) ) {
 
 	//        cout << "Fakeable photon! ";
@@ -1168,7 +1242,6 @@ ExoDiPhotonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
 	//        //      cout << "; pixelSeed = " << recoPhoton->hasPixelSeed();
 	//        cout << "; sigmaietaieta = " << recoPhoton->sigmaIetaIeta();
 	//        cout << endl;
-	 
 	 
 	fakeablePhotons.push_back(*recoPhoton);
   cout << "photon pased fakeable object cut" << endl;
@@ -1194,6 +1267,80 @@ ExoDiPhotonAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iS
     }
        
   } //end reco photon loop
+
+  // do cut table stuff now
+  // first of all, only do something if there are 2 or more photons
+  cout << "got here 1" << endl;
+  typedef std::map<double,bool>::const_iterator mapIter;
+  if (nAfterPV >=2){
+    hAfterPV->Fill(0.5);
+  }
+  if (nPassedChIso >= 2){
+    cout << "in nAfterPV block" << endl;
+    double leadingPt = -1;
+    double subleadingPt = -2;
+    std::vector<double> pts;
+    cout << "scMap.size() = " << scMap.size() << endl;
+    for (mapIter it = scMap.begin(); it != scMap.end(); ++it){
+      cout << "pt=" << it->first << endl;
+      pts.push_back(it->first);
+    }
+    for(unsigned int i=0; i<pts.size(); i++){
+      double currentPt = pts.at(i);
+      if (currentPt > leadingPt){
+        subleadingPt = leadingPt;
+        leadingPt = currentPt;
+      }
+      else if (currentPt > subleadingPt && currentPt < leadingPt)
+        subleadingPt = currentPt;
+    } // end loop over pts
+    cout << "leading pt = " << leadingPt << endl;
+    cout << "subleading pt = " << subleadingPt << endl;
+    cout << "got here 2" << endl;
+
+    // int nAfterPV = 0;
+    // std::map<double,bool> HoverEMap;
+    // std::map<double,bool> isoMap;
+    // std::map<double,bool> sieieMap;
+    // std::map<double,bool> etaGapMap;
+    // // int nelecveto = 0;
+    // std::map<double,bool> ptcutMap;
+    // std::map<double,bool> scMap;
+    // std::map< double, std::vector<bool> > noEEEEMap;
+
+    bool passHoverE = HoverEMap[leadingPt] && HoverEMap[subleadingPt];
+    bool passIso = isoMap[leadingPt] && isoMap[subleadingPt];
+    bool passSieie = sieieMap[leadingPt] && sieieMap[subleadingPt];
+    bool passEtaGap = etaGapMap[leadingPt] && etaGapMap[subleadingPt];
+    bool passPtCut = ptcutMap[leadingPt] && ptcutMap[subleadingPt];
+    bool passScCut = scMap[leadingPt] && scMap[subleadingPt];
+    bool passCSEV = vetoMap[leadingPt] && vetoMap[subleadingPt];
+    cout << "got here 3" << endl;
+
+    std::vector<bool> leadVec = noEEEEMap[leadingPt];
+    std::vector<bool> subleadVec = noEEEEMap[subleadingPt];
+    cout << leadVec.size() << " " << subleadVec.size() << endl;
+    bool leadEB = leadVec.at(0);
+    bool leadEE = leadVec.at(1);
+    bool subleadEB = subleadVec.at(0);
+    bool subleadEE = subleadVec.at(1);
+    bool passNoEEEE = false;
+    if ( (leadEB && subleadEB) || (leadEB && subleadEE) || (leadEE && subleadEB) )
+      passNoEEEE = true;
+    cout << "got here 4" << endl;
+    // now fill histograms
+    hchIso->Fill(0.5);
+    if (passScCut) hSC->Fill(0.5);
+    if (passScCut && passCSEV) helecveto->Fill(0.5);
+    if (passScCut && passCSEV && passEtaGap) hetagap->Fill(0.5);
+    if (passScCut && passCSEV && passEtaGap && passNoEEEE) hNoEEEE->Fill(0.5);
+    if (passScCut && passCSEV && passEtaGap && passNoEEEE && passHoverE) hHoverE->Fill(0.5);
+    if (passScCut && passCSEV && passEtaGap && passNoEEEE && passHoverE && passIso) hIso->Fill(0.5);
+    if (passScCut && passCSEV && passEtaGap && passNoEEEE && passHoverE && passIso && passSieie) hsieie->Fill(0.5);
+    if (passScCut && passCSEV && passEtaGap && passNoEEEE && passHoverE && passIso && passSieie && passPtCut) hptcut->Fill(0.5);
+    cout << "got here 5" << endl;
+
+  } // end if(scMap.size() >=2)
 
 
   // now sort the vector of selected photons by pt

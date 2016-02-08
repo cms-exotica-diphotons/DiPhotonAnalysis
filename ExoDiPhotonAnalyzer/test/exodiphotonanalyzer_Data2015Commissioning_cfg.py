@@ -33,14 +33,14 @@ inputFilesAOD = cms.untracked.vstring(
 #'root://eoscms//eos/cms/store/express/Run2015A/ExpressPhysics/FEVT/Express-v1/000/246/865/00000/0EA17D6D-B609-E511-9404-02163E014682.root'
 ##'root://eoscms//eos/cms/store/express/Run2015A/ExpressPhysics/FEVT/Express-v1/000/246/908/00000/448D1972-E909-E511-A7E0-02163E0125CE.root'
 #'/tmp/charaf/448D1972-E909-E511-A7E0-02163E0125CE.root'
-# 'root://xrootd.unl.edu//store/mc/RunIISpring15DR74/GGJets_M-200To500_Pt-50_13TeV-sherpa/AODSIM/Asympt25ns_MCRUN2_74_V9-v1/20000/109053D5-A022-E511-AD36-001E67A42BA2.root'
-'root://cmsxrootd.fnal.gov//store/data/Run2015D/DoubleEG/AOD/PromptReco-v3/000/256/630/00000/2AE2E490-235F-E511-B4F3-02163E01383F.root'
+'root://xrootd.unl.edu//store/mc/RunIISpring15DR74/GGJets_M-200To500_Pt-50_13TeV-sherpa/AODSIM/Asympt25ns_MCRUN2_74_V9-v1/20000/109053D5-A022-E511-AD36-001E67A42BA2.root'
+# 'root://cmsxrootd.fnal.gov//store/data/Run2015D/DoubleEG/AOD/PromptReco-v3/000/256/630/00000/2AE2E490-235F-E511-B4F3-02163E01383F.root'
     )    
 
 inputFilesMiniAOD = cms.untracked.vstring(
     # MiniAOD test files from a GJet PT40 dataset
-# 'root://eoscms.cern.ch//eos/cms/store/mc/Phys14DR/RSGravToGG_kMpl01_M-5000_Tune4C_13TeV-pythia8/MINIAODSIM/PU30bx50_PHYS14_25_V1-v1/00000/0EE85055-8967-E411-9D2E-002481E14D72.root'
-"root://cmsxrootd.fnal.gov//store/data/Run2015D/DoubleEG/MINIAOD/PromptReco-v3/000/257/969/00000/F24329DE-706A-E511-998A-02163E012B1A.root"
+'root://eoscms.cern.ch//eos/cms/store/mc/Phys14DR/RSGravToGG_kMpl01_M-5000_Tune4C_13TeV-pythia8/MINIAODSIM/PU30bx50_PHYS14_25_V1-v1/00000/0EE85055-8967-E411-9D2E-002481E14D72.root'
+# "root://cmsxrootd.fnal.gov//store/data/Run2015D/DoubleEG/MINIAOD/PromptReco-v3/000/257/969/00000/F24329DE-706A-E511-998A-02163E012B1A.root"
 # "file:pickevents.root"
     )
 
